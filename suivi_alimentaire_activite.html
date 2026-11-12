@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi alimentaire & activité</title>
+<style>
+:root{--ink:#24312d;--muted:#68756f;--bg:#f4f6f2;--card:#fff;--line:#e2e8e1;--green:#39765c;--green2:#e8f1eb;--gold:#c58a36;--red:#a94e45}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:#244c3b;color:#fff;padding:28px 20px}header .wrap,main{max-width:1180px;margin:auto}h1{font-size:clamp(25px,4vw,36px);margin:0 0 6px}header p{margin:0;color:#dce9df}
+main{padding:22px 16px 48px}.notice{background:#fff8e9;border:1px solid #f0dfba;padding:12px 14px;border-radius:12px;color:#5f4a27;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.metric,.panel{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px;box-shadow:0 2px 8px #233b2b08}
+.metric .k{font-size:13px;color:var(--muted)}.metric .v{font-size:27px;font-weight:750;margin-top:4px}.metric small{color:var(--muted)}
+.layout{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}.panel{margin-bottom:14px}.panel h2{font-size:18px;margin:0 0 13px}.sub{color:var(--muted);font-size:13px;margin:-7px 0 12px}
+form .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+label{display:block;font-size:13px;font-weight:650;color:#4d5a53;margin-bottom:5px}
+input,select,button{font:inherit}input,select{width:100%;padding:10px 11px;border:1px solid #d5ded5;border-radius:9px;background:#fff;color:var(--ink);min-width:0}
+input:focus,select:focus{outline:2px solid #b5d1bf;border-color:var(--green)}
+button{border:0;border-radius:9px;padding:10px 14px;background:var(--green);color:white;font-weight:650;cursor:pointer}button:hover{filter:brightness(.94)}button.secondary{background:var(--green2);color:var(--green)}button.danger{background:#f8eae8;color:var(--red);padding:6px 9px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:9px 7px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-weight:650}td.num{text-align:right;font-variant-numeric:tabular-nums}.empty{color:var(--muted);padding:15px 0}
+.bar{height:9px;background:#edf1ec;border-radius:20px;overflow:hidden;margin-top:9px}.bar span{display:block;height:100%;background:#6c9b7b;width:0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pill{display:inline-block;padding:4px 8px;background:var(--green2);border-radius:30px;color:var(--green);font-size:12px;font-weight:650}
+.hint{font-size:12px;color:var(--muted);margin-top:8px}.history{max-height:250px;overflow:auto}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:10px}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:1fr}}
+@media(max-width:520px){.grid{gap:8px}.metric{padding:12px}.metric .v{font-size:22px}.two,form .fields{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>Mon suivi alimentaire & activité</h1><p>Un tableau de bord personnel pour observer tes habitudes, ton activité et tes indicateurs.</p></div></header>
+<main>
+<div class="notice"><strong>À savoir :</strong> les calories, dépenses sportives et charges glycémiques sont des estimations. La charge glycémique nécessite une valeur d’index glycémique (IG) et une quantité de glucides disponibles ; laisse l’IG vide si tu ne le connais pas. Cet outil ne fixe pas de cible médicale et ne remplace pas un avis professionnel.</div>
+<div class="panel">
+ <div class="two">
+  <div><label for="day">Date suivie</label><input id="day" type="date"></div>
+  <div><label for="note">Note de la journée (facultatif)</label><input id="note" placeholder="Faim, énergie, sommeil, digestion…"></div>
+ </div>
+</div>
+<div class="grid">
+ <div class="metric"><div class="k">Calories consommées</div><div class="v" id="kcalTotal">0</div><small>kcal estimées</small><div class="bar"><span id="foodBar"></span></div></div>
+ <div class="metric"><div class="k">Protéines</div><div class="v" id="proteinTotal">0 g</div><small>Apport alimentaire</small></div>
+ <div class="metric"><div class="k">Activité sportive</div><div class="v" id="sportMinutes">0 min</div><small id="sportKcal">0 kcal estimées</small></div>
+ <div class="metric"><div class="k">Charge glycémique</div><div class="v" id="glTotal">—</div><small id="glLabel">Selon les données renseignées</small></div>
+</div>
+<div class="layout">
+<div>
+ <section class="panel">
+  <h2>1. Aliments consommés</h2><p class="sub">Saisis les valeurs pour la portion réellement consommée. Tu peux ajouter plusieurs aliments.</p>
+  <form id="foodForm">
+   <div class="fields">
+    <div><label for="foodName">Aliment</label><input id="foodName" required placeholder="Ex. flocons d’avoine"></div>
+    <div><label for="meal">Repas</label><select id="meal"><option>Petit-déjeuner</option><option>Déjeuner</option><option>Dîner</option><option>Collation</option></select></div>
+    <div><label for="foodKcal">Calories (kcal)</label><input id="foodKcal" type="number" min="0" step="0.1" required placeholder="Ex. 150"></div>
+    <div><label for="foodProtein">Protéines (g)</label><input id="foodProtein" type="number" min="0" step="0.1" value="0"></div>
+    <div><label for="foodCarbs">Glucides disponibles (g)</label><input id="foodCarbs" type="number" min="0" step="0.1" value="0"></div>
+    <div><label for="foodGI">Index glycémique (0–100)</label><input id="foodGI" type="number" min="0" max="100" step="1" placeholder="Facultatif"></div>
+    <div><label for="foodFat">Lipides (g)</label><input id="foodFat" type="number" min="0" step="0.1" value="0"></div>
+    <div><label for="foodFiber">Fibres (g)</label><input id="foodFiber" type="number" min="0" step="0.1" value="0"></div>
+   </div>
+   <div class="actions"><button type="submit">Ajouter l’aliment</button><button class="secondary" type="button" id="clearFoods">Effacer les aliments</button></div>
+  </form>
+  <div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Aliment / repas</th><th>kcal</th><th>Prot.</th><th>Gluc.</th><th>CG*</th><th></th></tr></thead><tbody id="foodRows"></tbody></table></div>
+  <p class="hint">* Charge glycémique estimée par aliment : (IG × glucides disponibles en g) ÷ 100. La charge totale est la somme des aliments dont l’IG est renseigné. Les valeurs d’IG varient selon la variété, la cuisson et la préparation.</p>
+ </section>
+ <section class="panel">
+  <h2>2. Activités sportives</h2><p class="sub">Les calories dépensées sont des ordres de grandeur, sensibles au poids, à l’intensité et à la durée.</p>
+  <form id="sportForm">
+   <div class="fields">
+    <div><label for="sportName">Activité</label><select id="sportName"><option>Marche</option><option>Musculation</option><option>Pilates / Reformer</option><option>Natation</option><option>Vélo</option><option>Course à pied</option><option>Autre</option></select></div>
+    <div><label for="sportDuration">Durée (minutes)</label><input id="sportDuration" type="number" min="1" required placeholder="Ex. 45"></div>
+    <div><label for="sportBurn">Calories dépensées (kcal)</label><input id="sportBurn" type="number" min="0" step="1" placeholder="Facultatif"></div>
+    <div><label for="sportIntensity">Intensité</label><select id="sportIntensity"><option>Légère</option><option selected>Modérée</option><option>Élevée</option></select></div>
+   </div>
+   <div class="actions"><button type="submit">Ajouter l’activité</button><button class="secondary" type="button" id="clearSports">Effacer les activités</button></div>
+  </form>
+  <div class="tablewrap" style="margin-top:14px"><table><thead><tr><th>Activité</th><th>Durée</th><th>kcal*</th><th></th></tr></thead><tbody id="sportRows"></tbody></table></div>
+  <p class="hint">* Si tu ne saisis pas les calories, l’outil donne une estimation indicative. Évite de soustraire automatiquement ces calories à ton alimentation : les estimations de dépense sont souvent imprécises.</p>
+ </section>
+</div>
+<div>
+ <section class="panel">
+  <h2>3. Indicateurs corporels</h2>
+  <form id="bodyForm">
+   <div class="fields">
+    <div><label for="weight">Poids (kg)</label><input id="weight" type="number" min="0" step="0.1" placeholder="Ex. 58"></div>
+    <div><label for="fat">Masse grasse (%)</label><input id="fat" type="number" min="0" max="75" step="0.1" placeholder="Ex. 26"></div>
+    <div><label for="waist">Tour de taille (cm)</label><input id="waist" type="number" min="0" step="0.1" placeholder="Facultatif"></div>
+    <div><label for="hip">Tour de hanches (cm)</label><input id="hip" type="number" min="0" step="0.1" placeholder="Facultatif"></div>
+   </div>
+   <div class="actions"><button type="submit">Enregistrer les indicateurs</button></div>
+  </form>
+  <p class="hint">Mesure-toi dans des conditions similaires. Les balances à impédancemétrie sont sensibles à l’hydratation, au cycle et à l’heure de mesure.</p>
+  <div class="tablewrap history"><table><thead><tr><th>Date</th><th>Poids</th><th>MG</th><th>Taille</th></tr></thead><tbody id="bodyRows"></tbody></table></div>
+ </section>
+ <section class="panel">
+  <h2>4. Bilan de la journée</h2>
+  <div class="two">
+   <div><div class="k">Calories aliments</div><strong id="sumFood">0 kcal</strong></div>
+   <div><div class="k">Calories sport estimées</div><strong id="sumSport">0 kcal</strong></div>
+   <div><div class="k">Glucides disponibles</div><strong id="sumCarbs">0 g</strong></div>
+   <div><div class="k">Fibres</div><strong id="sumFiber">0 g</strong></div>
+  </div>
+  <p class="hint">Le « bilan net » (apports moins sport) n’est pas une mesure du déficit énergétique : il manque notamment le métabolisme de base, les activités quotidiennes et la thermogenèse alimentaire.</p>
+ </section>
+ <section class="panel">
+  <h2>5. Exporter / sauvegarder</h2>
+  <p class="sub">Les données restent dans ce navigateur sur cet appareil.</p>
+  <div class="actions"><button id="export">Exporter la journée (CSV)</button><button class="secondary" id="backup">Télécharger sauvegarde</button><button class="secondary" id="restoreBtn">Importer sauvegarde</button><input id="restoreFile" type="file" accept=".json,application/json" hidden></div>
+  <p class="hint">Pense à exporter régulièrement : l’effacement des données du navigateur peut supprimer les informations enregistrées.</p>
+ </section>
+</div>
+</div>
+</main><footer>Outil personnel de suivi — estimations indicatives, sans diagnostic ni prescription nutritionnelle.</footer>
+<script>
+const $=id=>document.getElementById(id);
+let foods=[],sports=[],bodyHistory=[];
+const today=new Date();$('day').value=new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+const num=id=>Math.max(0,Number($(id).value)||0);
+const fmt=n=>Number(n||0).toLocaleString('fr-FR',{maximumFractionDigits:1});
+function save(){try{localStorage.setItem('suiviFoodActivity_v1',JSON.stringify({foods,sports,bodyHistory,day:$('day').value,note:$('note').value}));}catch(e){}}
+function load(){try{const d=JSON.parse(localStorage.getItem('suiviFoodActivity_v1')||'{}');foods=d.foods||[];sports=d.sports||[];bodyHistory=d.bodyHistory||[];if(d.day)$('day').value=d.day;if(d.note)$('note').value=d.note;}catch(e){}}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function render(){
+ const kcal=foods.reduce((s,x)=>s+x.kcal,0),prot=foods.reduce((s,x)=>s+x.protein,0),carbs=foods.reduce((s,x)=>s+x.carbs,0),fiber=foods.reduce((s,x)=>s+x.fiber,0),sport=sports.reduce((s,x)=>s+x.burn,0),mins=sports.reduce((s,x)=>s+x.duration,0);
+ const glFoods=foods.filter(x=>x.gi!==null),gl=glFoods.reduce((s,x)=>s+x.gi*x.carbs/100,0);
+ $('kcalTotal').textContent=fmt(kcal);$('proteinTotal').textContent=fmt(prot)+' g';$('sportMinutes').textContent=fmt(mins)+' min';$('sportKcal').textContent=fmt(sport)+' kcal estimées';
+ $('glTotal').textContent=glFoods.length?fmt(gl):'—';$('glLabel').textContent=glFoods.length?(gl<10?'Faible (repère indicatif)':gl<20?'Modérée (repère indicatif)':'Élevée (repère indicatif)'):'Renseigne l’IG pour estimer';
+ $('foodBar').style.width=Math.min(100,kcal/2000*100)+'%';
+ $('foodRows').innerHTML=foods.length?foods.map((x,i)=>`<tr><td>${esc(x.name)}<br><span class="hint">${esc(x.meal)}</span></td><td class="num">${fmt(x.kcal)}</td><td class="num">${fmt(x.protein)}</td><td class="num">${fmt(x.carbs)}</td><td class="num">${x.gi===null?'—':fmt(x.gi*x.carbs/100)}</td><td><button class="danger" onclick="removeFood(${i})">×</button></td></tr>`).join(''):'<tr><td colspan="6" class="empty">Aucun aliment ajouté.</td></tr>';
+ $('sportRows').innerHTML=sports.length?sports.map((x,i)=>`<tr><td>${esc(x.name)}<br><span class="hint">${esc(x.intensity)}</span></td><td>${fmt(x.duration)} min</td><td>${fmt(x.burn)}</td><td><button class="danger" onclick="removeSport(${i})">×</button></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Aucune activité ajoutée.</td></tr>';
+ $('sumFood').textContent=fmt(kcal)+' kcal';$('sumSport').textContent=fmt(sport)+' kcal';$('sumCarbs').textContent=fmt(carbs)+' g';$('sumFiber').textContent=fmt(fiber)+' g';
+ $('bodyRows').innerHTML=bodyHistory.length?bodyHistory.slice().reverse().map(x=>`<tr><td>${esc(x.date)}</td><td>${x.weight===''?'—':fmt(x.weight)+' kg'}</td><td>${x.fat===''?'—':fmt(x.fat)+' %'}</td><td>${x.waist===''?'—':fmt(x.waist)+' cm'}</td></tr>`).join(''):'<tr><td colspan="4" class="empty">Aucun indicateur enregistré.</td></tr>';
+ save();
+}
+$('foodForm').addEventListener('submit',e=>{e.preventDefault();const gi=$('foodGI').value.trim();foods.push({name:$('foodName').value.trim(),meal:$('meal').value,kcal:num('foodKcal'),protein:num('foodProtein'),carbs:num('foodCarbs'),gi:gi===''?null:Math.min(100,Number(gi)),fat:num('foodFat'),fiber:num('foodFiber')});e.target.reset();$('foodProtein').value=0;$('foodCarbs').value=0;$('foodFat').value=0;$('foodFiber').value=0;render();});
+$('sportForm').addEventListener('submit',e=>{e.preventDefault();const duration=num('sportDuration'),name=$('sportName').value,intensity=$('sportIntensity').value;let burn=$('sportBurn').value.trim()===''?duration*({Marche:3.5,'Musculation':6,'Pilates / Reformer':3.5,Natation:7,Vélo:6,'Course à pied':10,Autre:4}[name]||4)*58/60: num('sportBurn');sports.push({name,duration,burn,intensity});e.target.reset();render();});
+$('bodyForm').addEventListener('submit',e=>{e.preventDefault();bodyHistory.push({date:$('day').value,weight:$('weight').value,fat:$('fat').value,waist:$('waist').value,hip:$('hip').value});render();});
+window.removeFood=i=>{foods.splice(i,1);render()};window.removeSport=i=>{sports.splice(i,1);render()};
+$('clearFoods').onclick=()=>{if(confirm('Effacer tous les aliments de cette journée ?')){foods=[];render()}};
+$('clearSports').onclick=()=>{if(confirm('Effacer toutes les activités de cette journée ?')){sports=[];render()}};
+$('day').onchange=save;$('note').oninput=save;
+function csvCell(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}
+$('export').onclick=()=>{const rows=[['Type','Nom','Repas/intensité','Calories kcal','Protéines g','Glucides g','IG','Charge glycémique','Durée min','Date']];foods.forEach(x=>rows.push(['Aliment',x.name,x.meal,x.kcal,x.protein,x.carbs,x.gi??'',x.gi===null?'':x.gi*x.carbs/100,'',$('day').value]));sports.forEach(x=>rows.push(['Sport',x.name,x.intensity,x.burn,'','','','',x.duration,$('day').value]));const csv='\uFEFF'+rows.map(r=>r.map(csvCell).join(';')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='suivi-'+$('day').value+'.csv';a.click();URL.revokeObjectURL(a.href)};
+$('backup').onclick=()=>{const data={foods,sports,bodyHistory,day:$('day').value,note:$('note').value};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='sauvegarde-suivi.json';a.click();URL.revokeObjectURL(a.href)};
+$('restoreBtn').onclick=()=>$('restoreFile').click();$('restoreFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());foods=d.foods||[];sports=d.sports||[];bodyHistory=d.bodyHistory||[];if(d.day)$('day').value=d.day;$('note').value=d.note||'';render();alert('Sauvegarde importée.');}catch(err){alert('Fichier de sauvegarde invalide.')}e.target.value=''};
+load();render();
+</script>
+</body></html>
